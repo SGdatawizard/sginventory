@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../supabase'
-import { money, date, today, STATUS_LABEL } from '../lib/format'
+import { money, date, today, STATUS_LABEL, batchNo } from '../lib/format'
 import CardPreview from './CardPreview'
 import SortTh from './SortTh'
 import { useSort } from '../lib/useSort'
@@ -140,8 +140,8 @@ export default function ItemPanel({ pCode, onClose, onChanged }) {
             {item.status === 'in_stock'
               ? <button className="btn ghost" disabled={busy} onClick={() => update({ status: 'at_auction' }, 'Sent to auction.')}>Send to auction</button>
               : <button className="btn ghost" disabled={busy} onClick={() => update({ status: 'in_stock' }, 'Back in stock.')}>Back from auction unsold</button>}
-            <button className="btn ghost" disabled={busy} onClick={() => update({ print_queued: !item.print_queued }, item.print_queued ? 'Removed from print list.' : 'Added to print list.')}>
-              {item.print_queued ? 'Remove from print list' : 'Add to print list'}
+            <button className="btn ghost" disabled={busy} onClick={() => update({ print_queued: !item.print_queued }, item.print_queued ? 'Removed from reprint list.' : 'Added to reprint list.')}>
+              {item.print_queued ? 'Remove from reprint list' : 'Add to reprint list'}
             </button>
           </div>
         )}
@@ -248,6 +248,7 @@ export default function ItemPanel({ pCode, onClose, onChanged }) {
                     </div>
                   )
                 })}
+                {item.batch_id && <div><dt>Batch</dt><dd>{batchNo(item.batch_id)}</dd></div>}
                 {item.written_down && <div><dt>Cost note</dt><dd>Written down to £1</dd></div>}
                 {item.commission !== null && item.commission !== undefined && <div><dt>Commission</dt><dd>{Math.round(item.commission * 100)}%</dd></div>}
                 {item.commission_note && <div><dt>Commission (£)</dt><dd>{item.commission_note}</dd></div>}
