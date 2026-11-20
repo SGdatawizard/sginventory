@@ -1,11 +1,14 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../supabase'
 import { money, moneyRound, date, today, STATUS_LABEL, safeTerm } from '../lib/format'
+import { useSort } from '../lib/useSort'
+import SortTh from '../components/SortTh'
 
 const NEW = { po_number: '', supplier: '', purchase_date: today(), purchase_value: '', notes: '' }
 
 function PurchaseDetail({ po, onBack, onOpen }) {
   const [items, setItems] = useState([])
+  const { sort, toggle, apply } = useSort('p_code', 'asc')
   useEffect(() => {
     supabase.from('items').select('p_code, short_description, status, quantity, cost, asp, sale_price').eq('purchase_ref', po.po_number).order('p_code')
       .then(({ data }) => setItems(data || []))
@@ -40,12 +43,21 @@ function PurchaseDetail({ po, onBack, onOpen }) {
 
       <div className="table-wrap">
         <table>
-          <thead><tr><th>P code</th><th>Description</th><th className="num">Cost</th><th className="num">Retail</th><th className="num">Sold for</th><th>Status</th></tr></thead>
+          <thead>
+            <tr>
+              <SortTh label="P code" k="p_code" sort={sort} onSort={toggle} />
+              <th>Description</th>
+              <SortTh label="Cost" k="cost" type="num" sort={sort} onSort={toggle} className="hide-sm" />
+              <SortTh label="Retail" k="asp" type="num" sort={sort} onSort={toggle} />
+              <SortTh label="Sold for" k="sale_price" type="num" sort={sort} onSort={toggle} />
+              <SortTh label="Status" k="status" sort={sort} onSort={toggle} />
+            </tr>
+          </thead>
           <tbody>
-            {items.map((r) => (
+            {apply(items).map((r) => (
               <tr key={r.p_code} className="click" onClick={() => onOpen(r.p_code)}>
                 <td className="pcode">{r.p_code}</td><td className="desc">{r.short_description || '—'}</td>
-                <td className="num">{money(r.cost)}</td><td className="num">{money(r.asp)}</td><td className="num">{money(r.sale_price)}</td>
+                <td className="num hide-sm">{money(r.cost)}</td><td className="num">{money(r.asp)}</td><td className="num">{money(r.sale_price)}</td>
                 <td><span className={`pill ${r.status}`}>{STATUS_LABEL[r.status]}</span></td>
               </tr>
             ))}
@@ -64,16 +76,20 @@ export default function Purchases({ onOpen, refreshKey }) {
   const [current, setCurrent] = useState(null)
   const [form, setForm] = useState(null)
   const [msg, setMsg] = useState(null)
+  const { sort, toggle } = useSort('purchase_date', 'desc')
 
   const load = async () => {
-    let q = supabase.from('purchase_summary').select('*').order('purchase_date', { ascending: false, nullsFirst: false }).limit(300)
+    let q = supabase.from('purchase_summary').select('*')
+      .order(sort.key, { ascending: sort.dir === 'asc', nullsFirst: false })
+      .order('po_number', { ascending: false })
+      .limit(500)
     const s = safeTerm(term)
     if (s) q = q.or(`po_number.ilike.%${s}%,supplier.ilike.%${s}%`)
     if (onlyOpen) q = q.gt('unsorted_value', 0)
     const { data } = await q
     setRows(data || [])
   }
-  useEffect(() => { load() }, [term, onlyOpen, refreshKey]) // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { load() }, [term, onlyOpen, refreshKey, sort]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const save = async (e) => {
     e.preventDefault()
@@ -128,17 +144,26 @@ export default function Purchases({ onOpen, refreshKey }) {
       <div className="table-wrap">
         <table>
           <thead>
-            <tr><th>Purchase</th><th>Supplier</th><th>Date</th><th className="num">Paid</th><th className="num">To describe</th><th className="num">Sold</th><th className="num">Profit</th><th className="num">In stock</th></tr>
+            <tr>
+              <SortTh label="Purchase" k="po_number" sort={sort} onSort={toggle} />
+              <SortTh label="Supplier" k="supplier" sort={sort} onSort={toggle} />
+              <SortTh label="Date" k="purchase_date" type="date" sort={sort} onSort={toggle} className="hide-sm" />
+              <SortTh label="Paid" k="purchase_value" type="num" sort={sort} onSort={toggle} />
+              <SortTh label="To describe" k="unsorted_value" type="num" sort={sort} onSort={toggle} className="hide-md" />
+              <SortTh label="Sold" k="sales_total" type="num" sort={sort} onSort={toggle} className="hide-md" />
+              <SortTh label="Profit" k="profit" type="num" sort={sort} onSort={toggle} />
+              <SortTh label="In stock" k="items_in_stock" type="num" sort={sort} onSort={toggle} className="hide-sm" />
+            </tr>
           </thead>
           <tbody>
             {rows.map((r) => (
               <tr key={r.po_number} className="click" onClick={() => setCurrent(r)} tabIndex={0} onKeyDown={(e) => e.key === 'Enter' && setCurrent(r)}>
-                <td className="pcode">{r.po_number}</td><td>{r.supplier || '—'}</td><td>{date(r.purchase_date)}</td>
+                <td className="pcode">{r.po_number}</td><td>{r.supplier || '—'}</td><td className="hide-sm">{date(r.purchase_date)}</td>
                 <td className="num">{moneyRound(r.purchase_value)}</td>
-                <td className="num">{Number(r.unsorted_value) > 0 ? moneyRound(r.unsorted_value) : '—'}</td>
-                <td className="num">{moneyRound(r.sales_total)}</td>
+                <td className="num hide-md">{Number(r.unsorted_value) > 0 ? moneyRound(r.unsorted_value) : '—'}</td>
+                <td className="num hide-md">{moneyRound(r.sales_total)}</td>
                 <td className="num">{moneyRound(r.profit)}</td>
-                <td className="num">{r.items_in_stock}</td>
+                <td className="num hide-sm">{r.items_in_stock}</td>
               </tr>
             ))}
           </tbody>
