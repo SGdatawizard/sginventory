@@ -75,8 +75,8 @@ export default function PrintCards({ onOpen, refreshKey, onChanged }) {
     <>
       <div className="page-head">
         <div>
-          <h1>Print cards</h1>
-          <p className="sub">Download the cards as a PowerPoint, print it as usual, then mark them as printed.</p>
+          <h1>Reprint cards</h1>
+          <p className="sub">For one-off reprints. New stock is printed from its batch on the Batches page.</p>
         </div>
         <div className="btns">
           <button className="btn gold" disabled={busy || !rows.length} onClick={download}>Download {rows.length || ''} card{rows.length === 1 ? '' : 's'}</button>
@@ -87,7 +87,7 @@ export default function PrintCards({ onOpen, refreshKey, onChanged }) {
       {msg && <div className={`msg ${msg.type}`}>{msg.text}</div>}
 
       <form className="toolbar" onSubmit={addByCode}>
-        <input value={add} onChange={(e) => setAdd(e.target.value)} placeholder="Reprint a card: type a P code" aria-label="P code to reprint" style={{ maxWidth: 320 }} />
+        <input value={add} onChange={(e) => setAdd(e.target.value)} placeholder="Type a P code to reprint" aria-label="P code to reprint" style={{ maxWidth: 320 }} />
         <button className="btn ghost">Add to list</button>
       </form>
 
@@ -114,7 +114,7 @@ export default function PrintCards({ onOpen, refreshKey, onChanged }) {
             ))}
           </tbody>
         </table>
-        {!rows.length && <div className="empty">Nothing to print. New stock added with “Add to the print list” ticked shows up here.</div>}
+        {!rows.length && <div className="empty">Nothing to reprint. Type a P code above, or use “Add to reprint list” on any item.</div>}
       </div>
     </>
   )
