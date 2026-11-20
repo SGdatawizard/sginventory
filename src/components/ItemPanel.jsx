@@ -2,6 +2,8 @@ import { useEffect, useState } from 'react'
 import { supabase } from '../supabase'
 import { money, date, today, STATUS_LABEL } from '../lib/format'
 import CardPreview from './CardPreview'
+import SortTh from './SortTh'
+import { useSort } from '../lib/useSort'
 
 const EDITABLE = [
   ['short_description', 'Short description'], ['country', 'Country'], ['catalogue_no', 'SG / catalogue no.'],
@@ -20,6 +22,7 @@ export default function ItemPanel({ pCode, onClose, onChanged }) {
   const [draft, setDraft] = useState({})
   const [sell, setSell] = useState(null)
   const [busy, setBusy] = useState(false)
+  const { sort, toggle, apply } = useSort('sale_date', 'desc')
 
   const load = async () => {
     const [{ data: it, error }, { data: s }] = await Promise.all([
@@ -185,9 +188,18 @@ export default function ItemPanel({ pCode, onClose, onChanged }) {
           <div className="box">
             <h3>Sales</h3>
             <table>
-              <thead><tr><th>Date</th><th>Ref</th><th>Through</th><th className="num">Qty</th><th className="num">Price</th><th /></tr></thead>
+              <thead>
+                <tr>
+                  <SortTh label="Date" k="sale_date" type="date" sort={sort} onSort={toggle} />
+                  <SortTh label="Ref" k="sale_ref" sort={sort} onSort={toggle} />
+                  <SortTh label="Through" k="channel" sort={sort} onSort={toggle} />
+                  <SortTh label="Qty" k="quantity" type="num" sort={sort} onSort={toggle} />
+                  <SortTh label="Price" k="sale_price" type="num" sort={sort} onSort={toggle} />
+                  <th />
+                </tr>
+              </thead>
               <tbody>
-                {sales.map((s) => (
+                {apply(sales).map((s) => (
                   <tr key={s.id}>
                     <td>{date(s.sale_date)}</td><td>{s.sale_ref || '—'}</td><td>{s.channel === 'auction' ? 'Auction' : 'Retail'}</td>
                     <td className="num">{s.quantity}</td><td className="num">{money(s.sale_price)}</td>
