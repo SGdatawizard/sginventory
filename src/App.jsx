@@ -5,12 +5,14 @@ import AddStock from './pages/AddStock'
 import PrintCards from './pages/PrintCards'
 import Purchases from './pages/Purchases'
 import Checks from './pages/Checks'
+import Batches from './pages/Batches'
 import ItemPanel from './components/ItemPanel'
 
 const PAGES = [
   ['stock', 'Stock'],
   ['add', 'Add stock'],
-  ['print', 'Print cards'],
+  ['batches', 'Batches'],
+  ['print', 'Reprint cards'],
   ['purchases', 'Purchases'],
   ['checks', 'Needs checking'],
 ]
@@ -54,7 +56,7 @@ export default function App() {
   const [session, setSession] = useState(undefined)
   const [page, setPage] = useState('stock')
   const [openCode, setOpenCode] = useState(null)
-  const [counts, setCounts] = useState({ print: 0, checks: 0 })
+  const [counts, setCounts] = useState({ print: 0, checks: 0, batches: 0 })
   const [refreshKey, setRefreshKey] = useState(0)
 
   useEffect(() => {
@@ -64,11 +66,12 @@ export default function App() {
   }, [])
 
   const loadCounts = useCallback(async () => {
-    const [p, c] = await Promise.all([
+    const [p, c, b] = await Promise.all([
       supabase.from('items').select('p_code', { count: 'exact', head: true }).eq('print_queued', true),
       supabase.from('items').select('p_code', { count: 'exact', head: true }).eq('needs_check', true),
+      supabase.from('batches').select('id', { count: 'exact', head: true }).in('status', ['ready', 'printed']),
     ])
-    setCounts({ print: p.count || 0, checks: c.count || 0 })
+    setCounts({ print: p.count || 0, checks: c.count || 0, batches: b.count || 0 })
   }, [])
 
   useEffect(() => { if (session) loadCounts() }, [session, loadCounts, refreshKey])
@@ -79,7 +82,7 @@ export default function App() {
   if (session === undefined) return null
   if (!session) return <Login />
 
-  const navCount = { print: counts.print, checks: counts.checks }
+  const navCount = { print: counts.print, checks: counts.checks, batches: counts.batches }
 
   return (
     <div className="shell">
@@ -99,6 +102,7 @@ export default function App() {
       <main className="main">
         {page === 'stock' && <Stock onOpen={setOpenCode} refreshKey={refreshKey} />}
         {page === 'add' && <AddStock onSaved={changed} onOpen={setOpenCode} />}
+        {page === 'batches' && <Batches onOpen={setOpenCode} refreshKey={refreshKey} onChanged={changed} />}
         {page === 'print' && <PrintCards onOpen={setOpenCode} refreshKey={refreshKey} onChanged={changed} />}
         {page === 'purchases' && <Purchases onOpen={setOpenCode} refreshKey={refreshKey} />}
         {page === 'checks' && <Checks onOpen={setOpenCode} refreshKey={refreshKey} />}
