@@ -2,6 +2,8 @@ import { useEffect, useState } from 'react'
 import { supabase } from '../supabase'
 import { money, today } from '../lib/format'
 import { buildCardDeck } from '../lib/cardDeck'
+import { useSort } from '../lib/useSort'
+import SortTh from '../components/SortTh'
 
 export default function PrintCards({ onOpen, refreshKey, onChanged }) {
   const [rows, setRows] = useState([])
@@ -9,6 +11,7 @@ export default function PrintCards({ onOpen, refreshKey, onChanged }) {
   const [msg, setMsg] = useState(null)
   const [add, setAdd] = useState('')
   const [downloaded, setDownloaded] = useState(false)
+  const { sort, toggle, apply } = useSort('p_code', 'asc')
 
   const load = async () => {
     const { data } = await supabase.from('items').select('*').eq('print_queued', true).order('p_code')
@@ -24,7 +27,7 @@ export default function PrintCards({ onOpen, refreshKey, onChanged }) {
         if (!r.ok) throw new Error('card-template.pptx is missing from the public folder')
         return r.arrayBuffer()
       })
-      const blob = await buildCardDeck(tpl, rows)
+      const blob = await buildCardDeck(tpl, apply(rows)) // cards come out in the order shown
       const a = document.createElement('a')
       a.href = URL.createObjectURL(blob)
       a.download = `Stock cards ${today()} (${rows.length}).pptx`
@@ -90,13 +93,21 @@ export default function PrintCards({ onOpen, refreshKey, onChanged }) {
 
       <div className="table-wrap">
         <table>
-          <thead><tr><th>P code</th><th>Country</th><th>Description on card</th><th className="num">Price</th><th /></tr></thead>
+          <thead>
+            <tr>
+              <SortTh label="P code" k="p_code" sort={sort} onSort={toggle} />
+              <SortTh label="Country" k="country" sort={sort} onSort={toggle} />
+              <th className="hide-sm">Description on card</th>
+              <SortTh label="Price" k="asp" type="num" sort={sort} onSort={toggle} />
+              <th />
+            </tr>
+          </thead>
           <tbody>
-            {rows.map((r) => (
+            {apply(rows).map((r) => (
               <tr key={r.p_code}>
                 <td className="pcode"><button className="link-btn" style={{ opacity: 1, fontWeight: 600 }} onClick={() => onOpen(r.p_code)}>{r.p_code}</button></td>
                 <td><b>{r.country || '—'}</b></td>
-                <td className="desc">{r.long_description ? r.long_description.slice(0, 140) + (r.long_description.length > 140 ? '…' : '') : <span className="pill flag">No description</span>}</td>
+                <td className="desc hide-sm">{r.long_description ? r.long_description.slice(0, 140) + (r.long_description.length > 140 ? '…' : '') : <span className="pill flag">No description</span>}</td>
                 <td className="num">{money(r.asp)}</td>
                 <td className="num"><button className="link-btn" onClick={() => remove(r.p_code)}>Remove</button></td>
               </tr>
