@@ -18,3 +18,21 @@ export const STATUS_LABEL = {
 
 // strip characters that break Supabase "or" filters
 export const safeTerm = (s) => s.replace(/[,()*%\\]/g, ' ').trim()
+
+export const batchNo = (id) => (id ? 'B' + String(id).padStart(4, '0') : '—')
+
+export const BATCH_STATUS = {
+  open: 'Open',
+  ready: 'Ready to print',
+  printed: 'Printed',
+  uploaded: 'Uploaded to web',
+}
+
+// download a Blob as a file
+export function saveBlob(blob, filename) {
+  const a = document.createElement('a')
+  a.href = URL.createObjectURL(blob)
+  a.download = filename
+  a.click()
+  setTimeout(() => URL.revokeObjectURL(a.href), 1000)
+}
