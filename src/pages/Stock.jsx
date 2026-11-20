@@ -1,6 +1,8 @@
 import { useEffect, useState, useRef } from 'react'
 import { supabase } from '../supabase'
 import { money, moneyRound, STATUS_LABEL, safeTerm } from '../lib/format'
+import { useSort } from '../lib/useSort'
+import SortTh from '../components/SortTh'
 
 const LIMIT = 100
 
@@ -13,6 +15,7 @@ export default function Stock({ onOpen, refreshKey }) {
   const [totals, setTotals] = useState(null)
   const [error, setError] = useState('')
   const timer = useRef()
+  const { sort, toggle } = useSort('p_code', 'asc')
 
   useEffect(() => {
     supabase.from('stock_totals').select('*').then(({ data }) => {
@@ -29,6 +32,7 @@ export default function Stock({ onOpen, refreshKey }) {
     let q = supabase
       .from('items')
       .select('p_code, ownership, status, quantity, country, catalogue_no, short_description, asp, cost, needs_check')
+      .order(sort.key, { ascending: sort.dir === 'asc', nullsFirst: false })
       .order('p_code')
       .limit(LIMIT)
     if (status !== 'all') q = q.eq('status', status)
@@ -50,7 +54,7 @@ export default function Stock({ onOpen, refreshKey }) {
     timer.current = setTimeout(() => search(term), 250)
     return () => clearTimeout(timer.current)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [term, status, ownership, refreshKey])
+  }, [term, status, ownership, refreshKey, sort])
 
   // Enter on an exact P code opens it straight away (fast for marking sales)
   const onKey = async (e) => {
@@ -110,8 +114,14 @@ export default function Stock({ onOpen, refreshKey }) {
         <table>
           <thead>
             <tr>
-              <th>P code</th><th>Description</th><th>Country</th><th>SG no.</th>
-              <th className="num">Qty</th><th className="num">Cost</th><th className="num">Retail</th><th>Status</th>
+              <SortTh label="P code" k="p_code" sort={sort} onSort={toggle} />
+              <th>Description</th>
+              <SortTh label="Country" k="country" sort={sort} onSort={toggle} className="hide-sm" />
+              <SortTh label="SG no." k="catalogue_no" sort={sort} onSort={toggle} className="hide-md" />
+              <SortTh label="Qty" k="quantity" type="num" sort={sort} onSort={toggle} className="hide-md" />
+              <SortTh label="Cost" k="cost" type="num" sort={sort} onSort={toggle} className="hide-sm" />
+              <SortTh label="Retail" k="asp" type="num" sort={sort} onSort={toggle} />
+              <SortTh label="Status" k="status" sort={sort} onSort={toggle} />
             </tr>
           </thead>
           <tbody>
@@ -119,10 +129,10 @@ export default function Stock({ onOpen, refreshKey }) {
               <tr key={r.p_code} className="click" onClick={() => onOpen(r.p_code)} tabIndex={0} onKeyDown={(e) => e.key === 'Enter' && onOpen(r.p_code)}>
                 <td className="pcode">{r.p_code}</td>
                 <td className="desc">{r.short_description || '—'}</td>
-                <td>{r.country || '—'}</td>
-                <td>{r.catalogue_no || '—'}</td>
-                <td className="num">{r.quantity}</td>
-                <td className="num">{money(r.cost)}</td>
+                <td className="hide-sm">{r.country || '—'}</td>
+                <td className="hide-md">{r.catalogue_no || '—'}</td>
+                <td className="num hide-md">{r.quantity}</td>
+                <td className="num hide-sm">{money(r.cost)}</td>
                 <td className="num">{money(r.asp)}</td>
                 <td>
                   <span className={`pill ${r.status}`}>{STATUS_LABEL[r.status]}</span>{' '}
